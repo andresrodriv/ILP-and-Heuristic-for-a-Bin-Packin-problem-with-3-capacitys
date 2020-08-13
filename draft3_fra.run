@@ -1,0 +1,91 @@
+reset;
+
+reset options;
+
+model problem3_fra.mod;
+
+data i_10_1.dat;
+
+param MAXITER := 1000;
+param tic;
+param toc;
+param SR_time;
+
+# Define the following problems:
+
+# Original bin packing
+#problem OriginalBinPacking: y, x, VMs, Assignment, VM_max_traffic, VM_max_CPU, VM_max_memory,Consistency;
+# Reduced bin packing, in this case only for traffic constraints
+#problem ReducedBinPacking: y, x, VMs, Assignment, Consistency, VM_max_traffic, VM_max_CPU, VM_max_memory;
+#option solver 'cplex';
+# Surrogate Relaxation
+problem SurrogateRelaxation: y, x, VMs, Assignment, Consistency, SurrogateCapacity, VM_max_CPU, VM_max_memory;
+option solver 'cplex';
+
+param LB_SR default 0;
+display LB_SR;
+param UB_SR default M;
+display UB_SR;
+
+let t:=1;
+
+let tic := _ampl_user_time;
+
+for {iter in 1..MAXITER} {
+	# Solve the Surrogate Relaxation
+	solve SurrogateRelaxation;
+	display iter;
+	display y;
+	display x;
+  
+  	# Check for feasibility:
+	for {j in 1..M} {
+		let j_stop := j;
+  		if not (sum{i in I} w[i]*x[i,j] <= B_c or sum{i in I} cpu[i]*x[i,j] <= B_CPU or sum{i in I} m[i]*x[i,j] <= B_m) then break; #if there is a violation, break
+	}
+	
+	if (sum{i in I} w[i]*x[i,j_stop] <= B_c) then { #if there is not a capacity violation
+		# update LB_SR if feasible
+  		let LB_SR := max(LB_SR, VMs); 
+  		display LB_SR; # > resultsProblem3.txt;
+  		printf"\n Feasible solution found - value: %g", LB_SR > resultsProblem3.txt;
+  		#end of the problem
+	}
+	
+  	# Update step size
+	let t := t*0.995;
+ 
+	# Update UB_SR
+	let UB_SR := min(UB_SR, VMs);
+	printf"\n Current best upper bound - value: %g", UB_SR > resultsProblem3.txt;
+	  
+	# Update multipliers
+	for {j in 1..M} {
+	# Memorize old values		
+		let la_w_old[j] := la_w[j];	
+		#let la_cpu_old[j] := la_cpu[j];
+		#let la_m_old[j] := la_m[j];
+	# Calculate new values
+		let la_w[j] := max(la_w_old[j], (sum{i in I} w[i]*x[i,j])/B_c);
+		#let la_cpu[j] := max(0, la_cpu_old[j] + t * sum{i in I} cpu[i]*x[i,j]);
+		#let la_m[j] := max(0, la_m_old[j] + t * sum{i in I} m[i]*x[i,j]);
+	} 
+	display la_w;
+	#display la_cpu;
+	#display la_m;
+  
+  	display UB_SR; # > resultsProblem3.txt;
+  	#display t > results.txt;
+  
+  	#printf"\n Updated multipliers %g, %g, %g and step %g \n", u1, u2, u3, t > results.txt;
+  		
+   
+  	if(LB_SR == UB_SR) then break;
+
+}
+let toc := _ampl_user_time + tic;
+
+let SR_time := toc - tic;
+#let tic := toc;
+
+quit;

@@ -1,0 +1,96 @@
+reset;
+
+reset options;
+
+model problem4_bis.mod;
+
+data i_20_1.dat;
+
+option solver 'cplex';
+
+
+problem PackingRelax: y, x, VMs, Assignment, Consistency, VM_max_traffic, VM_max_CPU, VM_max_memory, Cover;
+
+problem Separation: u, Violation, CoverCondition_c, CoverCondition_cpu, CoverCondition_m;
+
+
+param ViolationCounter default 0;
+param MAXITER default 50;
+
+printf"-----------------------------------------------------------------------------\n" > results4_bis.txt;
+printf"  			 			    LP relaxation	                                \n" > results4_bis.txt;
+printf"-----------------------------------------------------------------------------\n" > results4_bis.txt;
+
+param initialSol default 0;
+param finalSol default 0;
+
+
+solve PackingRelax;
+display x > results4_bis.txt;
+let initialSol := VMs;
+display VMs > results4_bis.txt;
+
+
+
+printf"\n" > results4_bis.txt;
+printf"-----------------------------------------------------------------------------\n" > results4_bis.txt;
+printf"  			 			Violated cover inequalities	        		        \n" > results4_bis.txt;
+printf"-----------------------------------------------------------------------------\n" > results4_bis.txt;
+printf"\n" > results4_bis.txt;
+
+param iter default 0;
+
+# Repeat until there are no violated cover inequalities
+repeat{
+ printf "----------------------------------- Iter: %d ---------------------------------\n", iter > results4_bis.txt;
+   
+   # Update iterator 	
+   let iter := iter + 1;
+   let ViolationCounter := 0;
+   
+   # Solve the LP relaxation with current set of cover inequalities 
+   solve PackingRelax;
+
+   printf "Instantiated VMs=%d \n", VMs > results4_bis.txt;
+
+   for {j in J} {
+   # Prepare the objective function of the separation problem
+   	if (y[j] == 1) then {
+   		let {i in I} x_star[i] := x[i,j];
+   
+   # Solve the separation problem
+	   solve Separation;
+	   printf "SEP=%.3f \n", Violation > results4_bis.txt;
+	   printf "VM[%d]\n", j > results4_bis.txt;
+	   display u > results4_bis.txt;
+	   
+	   if (Violation < 1) then 
+	   {
+		  let ViolationCounter := ViolationCounter + 1;
+		  # Update the number of cover inequalities
+	      let nc := nc + 1;
+	
+	      # Create new cover 
+	      let CI[nc] := setof {i in I: u[i] == 1} (i, j);
+	
+	      printf"CI[%d] := ", nc > results4_bis.txt;
+	      for{(i,j) in CI[nc]}
+	      {
+	      	printf"%d %d \n", i, j > results4_bis.txt;
+	      }
+	      printf"\n\n" > results4_bis.txt
+	   }
+  }
+ }   
+} while ( ViolationCounter >= 1 && iter <= MAXITER );
+
+
+solve PackingRelax;
+let finalSol := VMs;
+
+printf "Optimal values of VMs for LP with all violated cover inequalities:\n" > results4_bis.txt;
+
+display VMs > results4_bis.txt; 
+
+printf "Total number of cover inequalities considered: %d\n", nc > results4_bis.txt;
+quit;

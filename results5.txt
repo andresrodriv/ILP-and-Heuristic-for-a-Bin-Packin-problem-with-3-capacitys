@@ -1,0 +1,290 @@
+-----------------------------------------------------------------------------
+                		   Greedy (Constructive)  
+-----------------------------------------------------------------------------
+
+  					        Iteration 1 
+     ------------------------------------------------------------------- 
+
+
+Assigned Requests:
+
+
+Unassigned Requests:
+1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 
+
+Subset of best requests:
+Request: 9, Value: 0.961
+
+
+Min value of best virtual machine: 1
+Index of best virtual machine: 1
+
+Request 9 assigned to VM 1
+
+  					        Iteration 2 
+     ------------------------------------------------------------------- 
+
+
+Assigned Requests:
+9   
+
+Unassigned Requests:
+1, 2, 3, 4, 5, 6, 7, 8, 10, 
+
+Subset of best requests:
+Request: 6, Value: 0.834
+
+
+Min value of best virtual machine: 0
+Index of best virtual machine: 1
+
+Request 6 assigned to VM 1
+
+  					        Iteration 3 
+     ------------------------------------------------------------------- 
+
+
+Assigned Requests:
+9   6   
+
+Unassigned Requests:
+1, 2, 3, 4, 5, 7, 8, 10, 
+
+Subset of best requests:
+Request: 1, Value: 0.797
+
+
+Min value of best virtual machine: 0
+Index of best virtual machine: 1
+Min value of best virtual machine: 1
+Index of best virtual machine: 2
+
+Request 1 assigned to VM 2
+
+  					        Iteration 4 
+     ------------------------------------------------------------------- 
+
+
+Assigned Requests:
+9   6   1   
+
+Unassigned Requests:
+2, 3, 4, 5, 7, 8, 10, 
+
+Subset of best requests:
+Request: 3, Value: 0.698
+
+
+Min value of best virtual machine: 0
+Index of best virtual machine: 1
+
+Request 3 assigned to VM 1
+
+  					        Iteration 5 
+     ------------------------------------------------------------------- 
+
+
+Assigned Requests:
+9   6   1   3   
+
+Unassigned Requests:
+2, 4, 5, 7, 8, 10, 
+
+Subset of best requests:
+Request: 4, Value: 0.618
+
+
+Min value of best virtual machine: 0
+Index of best virtual machine: 1
+Min value of best virtual machine: 0
+Index of best virtual machine: 2
+
+Request 4 assigned to VM 2
+
+  					        Iteration 6 
+     ------------------------------------------------------------------- 
+
+
+Assigned Requests:
+9   6   1   3   4   
+
+Unassigned Requests:
+2, 5, 7, 8, 10, 
+
+Subset of best requests:
+Request: 10, Value: 0.588
+
+
+Min value of best virtual machine: 0
+Index of best virtual machine: 1
+Min value of best virtual machine: 0
+Index of best virtual machine: 2
+Min value of best virtual machine: 1
+Index of best virtual machine: 3
+
+Request 10 assigned to VM 3
+
+  					        Iteration 7 
+     ------------------------------------------------------------------- 
+
+
+Assigned Requests:
+9   6   1   3   4   10   
+
+Unassigned Requests:
+2, 5, 7, 8, 
+
+Subset of best requests:
+Request: 5, Value: 0.581
+
+
+Min value of best virtual machine: 0
+Index of best virtual machine: 1
+Min value of best virtual machine: 0
+Index of best virtual machine: 2
+Min value of best virtual machine: 0
+Index of best virtual machine: 3
+
+Request 5 assigned to VM 3
+
+  					        Iteration 8 
+     ------------------------------------------------------------------- 
+
+
+Assigned Requests:
+9   6   1   3   4   10   5   
+
+Unassigned Requests:
+2, 7, 8, 
+
+Subset of best requests:
+Request: 2, Value: 0.480
+
+
+Min value of best virtual machine: 0
+Index of best virtual machine: 1
+Min value of best virtual machine: 0
+Index of best virtual machine: 2
+Min value of best virtual machine: 0
+Index of best virtual machine: 3
+
+Request 2 assigned to VM 3
+
+  					        Iteration 9 
+     ------------------------------------------------------------------- 
+
+
+Assigned Requests:
+9   6   1   3   4   10   5   2   
+
+Unassigned Requests:
+7, 8, 
+
+Subset of best requests:
+Request: 7, Value: 0.398
+
+
+Min value of best virtual machine: 0
+Index of best virtual machine: 1
+Min value of best virtual machine: 0
+Index of best virtual machine: 3
+
+Request 7 assigned to VM 3
+
+  					        Iteration 10 
+     ------------------------------------------------------------------- 
+
+
+Assigned Requests:
+9   6   1   3   4   10   5   2   7   
+
+Unassigned Requests:
+8, 
+
+Subset of best requests:
+Request: 8, Value: 0.317
+
+
+Min value of best virtual machine: 0
+Index of best virtual machine: 1
+
+Request 8 assigned to VM 1
+
+  					        Final Result
+     ------------------------------------------------------------------- 
+
+
+Assigned Requests:
+9   6   1   3   4   10   5   2   7   8   
+Assigned Machines:
+Machine: 1 - Remaining Capacities: 1(w) 2(CPU) 1(m)
+Machine: 2 - Remaining Capacities: 4(w) 25(CPU) 8(m)
+Machine: 3 - Remaining Capacities: 3(w) 10(CPU) 6(m)
+
+Objective Function= 3
+C [*] :=
+ 1  1
+ 2  1
+ 3  1
+ 4  0
+ 5  0
+ 6  0
+ 7  0
+ 8  0
+ 9  0
+10  0
+;
+
+
+
+-----------------------------------------------------------------------------
+                		   Local Search (Improving)  
+-----------------------------------------------------------------------------
+
+
+Current Solution
+Objective Function= 3
+C [*] :=
+ 1  1
+ 2  1
+ 3  1
+ 4  0
+ 5  0
+ 6  0
+ 7  0
+ 8  0
+ 9  0
+10  0
+;
+
+
+  					        Iteration 1 
+     ------------------------------------------------------------------- 
+
+
+
+Neighbor (Assigned virtual machines): 
+Machine: 2
+Machine: 3
+The Neighbor is infeasible
+
+Neighbor (Assigned virtual machines): 
+Machine: 1
+Machine: 3
+The Neighbor is infeasible
+
+Neighbor (Assigned virtual machines): 
+Machine: 1
+Machine: 2
+The Neighbor is infeasible
+  					        Final Result
+     ------------------------------------------------------------------- 
+
+
+
+Assigned Machines:
+Machine: 1 - Remaining Capacities: 1(w) 2(CPU) 1(m)
+Machine: 2 - Remaining Capacities: 4(w) 25(CPU) 8(m)
+Machine: 3 - Remaining Capacities: 3(w) 10(CPU) 6(m)
+
+Objective Function= 3

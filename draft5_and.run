@@ -1,0 +1,163 @@
+reset;
+reset options;
+
+model problem1.mod;
+model problem5_and.mod;
+
+data i_10_1.dat;
+
+param iter default 0;
+param greedySol default 0;
+param time default 0;
+
+set maxRequest;
+set subgroup within J;
+param bestVM;
+param bestVM_index;
+  
+
+let AI :={};
+let AJ :={}; 
+let UI :={1..N};
+let UJ :={1..M};
+
+param allocation{I,J} default 0;
+
+#current partial solution
+for {j in J} let C[j] := 0;
+
+printf"-----------------------------------------------------------------------------\n" > results5.txt;
+printf"                		   Greedy (Constructive)  \n" > results5.txt;
+printf"-----------------------------------------------------------------------------\n\n" > results5.txt;
+
+repeat{
+	let iter := iter + 1;
+	printf"  					        Iteration %d \n",iter > results5.txt;
+	printf"     ------------------------------------------------------------------- \n\n" > results5.txt;  
+	printf"\n" > results5.txt;
+	
+	printf"Assigned Requests:\n" > results5.txt;
+	for{i in AI} printf"%d   ", i > results5.txt;
+	 
+	printf"\n\nUnassigned Requests:\n" > results5.txt;
+	for{i in UI} printf"%d, ", i > results5.txt; 
+	
+	let maxRequest:= {i in UI: O_1[i] == max{j in UI} O_1[j]};
+	printf"\n\nSubset of best requests:\n" > results5.txt;  
+	for{i in maxRequest} printf"Request: %d, Value: %.3f\n", i, O_1[i] > results5.txt;  
+	printf"\n\n">results5.txt;
+   	
+   	let bestVM := min{j in J} res_B[j];
+   	printf"Min value of best virtual machine: %d\n", bestVM > results5.txt;  
+    for {i in J}
+    	if res_B[i] == bestVM then{
+    		printf"Index of best virtual machine: %d\n", i > results5.txt;
+    		let bestVM_index := i;
+    		break;  
+    	}
+    	
+    for{i in maxRequest}{
+    	let subgroup := J;
+		repeat while not w[i] <= res_B_c[bestVM_index] || not cpu[i] <= res_B_CPU[bestVM_index] || not m[i] <= res_B_m[bestVM_index]{				
+			let subgroup := subgroup diff {bestVM_index};
+			let bestVM := min{j in subgroup diff {bestVM_index}} res_B[j];
+   			printf"Min value of best virtual machine: %d\n", bestVM > results5.txt;  
+    		for {j in J}
+    			if res_B[j] == bestVM then{
+    				printf"Index of best virtual machine: %d\n", j > results5.txt;
+    				let bestVM_index := j;
+    				break;  
+    			}
+		};
+		printf"\nRequest %d assigned to VM %d\n\n", i, bestVM_index > results5.txt;
+		let allocation[i,bestVM_index] := 1; 
+		
+		let AI := AI union {i};
+		let UI := UI diff {i};
+		let C[bestVM_index] := 1;
+		
+		let res_B_c[bestVM_index] := res_B_c[bestVM_index] - w[i];
+		let res_B_CPU[bestVM_index] := res_B_CPU[bestVM_index] - cpu[i];
+		let res_B_m[bestVM_index] := res_B_m[bestVM_index] - m[i];
+		
+		if not (bestVM_index in AJ) then 
+			let AJ := AJ union {bestVM_index};
+	}
+} while (card(UI) >= 1);
+
+printf"  					        Final Result\n" > results5.txt;
+printf"     ------------------------------------------------------------------- \n\n" > results5.txt;  
+printf"\n" > results5.txt;
+printf"Assigned Requests:\n" > results5.txt;
+for{i in AI} printf"%d   ", i > results5.txt;
+
+printf"\nAssigned Machines:\n" > results5.txt;
+for{i in AJ} printf"Machine: %d - Remaining Capacities: %d(w) %d(CPU) %d(m)\n", i, res_B_c[i], res_B_CPU[i], res_B_m[i] > results5.txt;
+
+printf"\nObjective Function= %d\n", card(AJ) > results5.txt;
+display C > results5.txt;
+
+let time := _ampl_user_time;
+
+printf"\n\n" > results5.txt;
+printf"-----------------------------------------------------------------------------\n" > results5.txt;
+printf"                		   Local Search (Improving)  \n" > results5.txt;
+printf"-----------------------------------------------------------------------------\n\n" > results5.txt;
+
+let iter:=0;
+param flag default 0;
+
+printf"\nCurrent Solution\nObjective Function= %d\n", card(AJ) > results5.txt;
+display C > results5.txt;
+repeat{
+	let iter := iter + 1;
+	printf"\n  					        Iteration %d \n",iter > results5.txt;
+	printf"     ------------------------------------------------------------------- \n\n" > results5.txt;  
+	printf"\n" > results5.txt;
+	
+	let bestNeighbor := AJ;
+	for {j in AJ}{
+		# Neighbors (VM)
+		let newSOL := AJ;
+		let newSOL := newSOL diff {j};
+		
+		printf"\nNeighbor (Assigned virtual machines): \n" > results5.txt;
+		for {i in newSOL} printf "Machine: %d\n", i > results5.txt;
+		 
+		#Try to allocate the requests in the remaining VMs
+		for {i in AI}
+			if allocation[i,j] == 1 then{
+				let flag := 0;
+				for {k in AJ diff {j}}
+					if w[i] <= res_B_c[k] && cpu[i] <= res_B_CPU[k] && m[i] <= res_B_m[k] then{
+						let allocation[i,j] := 0;
+						let allocation[i,k] := 1;
+						
+						let res_B_c[k] := res_B_c[k] - w[i];
+						let res_B_CPU[k] := res_B_CPU[k] - cpu[i];
+						let res_B_m[k] := res_B_m[k] - m[i];
+						
+						let flag :=1;
+						break;				
+					}
+				if flag == 0 then{
+					printf"The Neighbor is infeasible\n" > results5.txt;
+					break;
+				}
+			}
+		if flag == 1 && card(newSOL) < card(bestNeighbor) then{
+			printf"The Neighbor is feasible\n" > results5.txt;
+			let bestNeighbor := newSOL; 
+		}
+	}
+	let AJ := bestNeighbor;
+		
+} while (flag = 1);
+
+printf"  					        Final Result\n" > results5.txt;
+printf"     ------------------------------------------------------------------- \n\n" > results5.txt;  
+printf"\n" > results5.txt;
+printf"\nAssigned Machines:\n" > results5.txt;
+for{i in AJ} printf"Machine: %d - Remaining Capacities: %d(w) %d(CPU) %d(m)\n", i, res_B_c[i], res_B_CPU[i], res_B_m[i] > results5.txt;
+printf"\nObjective Function= %d\n", card(AJ) > results5.txt;
+quit;

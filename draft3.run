@@ -1,0 +1,98 @@
+reset;
+
+reset options;
+
+model problem3.mod;
+
+data i_10_1.dat;
+
+param MAXITER := 50;
+param tic;
+param toc;
+param SR_time;
+param norma default 1;
+
+# Define the following problems:
+
+# Original bin packing
+problem OriginalBinPacking: y, x, VMs, Assignment, VM_max_traffic, VM_max_CPU, VM_max_memory;
+option solver 'cplex';
+# Surrogate Relaxation
+problem SurrogateRelaxation: y, x, VMs, Assignment, SurrogateCapacity_1, VM_max_CPU, VM_max_memory;
+option solver 'cplex';
+
+printf"\n\n\n">results.txt;
+printf"-----------------------------------------------------------------------------\n" > results.txt;
+printf"  			 Surrogate Relaxation	                            \n" > results.txt;
+printf"-----------------------------------------------------------------------------\n" > results.txt;
+
+# Initialize the surrogate relaxation
+
+param LB_SR default 0;
+display LB_SR > results.txt;
+
+param UB_SR default N;
+display UB_SR > results.txt;
+
+let t := 0;
+let tic := _ampl_user_time;
+let flag := 0;
+
+for {iter in 1..MAXITER} 
+{
+	printf"\nIteration %d ... \n",iter > results.txt;
+		   
+	solve SurrogateRelaxation;
+	display y;
+	display x;
+		
+	# Check for feasibility
+	let flag := 0;
+	for {j in 1..M}
+	{
+		if (not(sum{i in I} w[i]*x[i,j] <= B_c*y[j]) || not(sum{i in I} cpu[i]*x[i,j] <= B_CPU*y[j]) || not(sum{i in I} m[i]*x[i,j] <= B_m*y[j])) then
+		{
+			let flag := 1;
+			printf"\n Flag Active for constraint: %g", j > results.txt;
+		}
+	}
+	if (flag == 0) then
+	{
+		# Update upper bound 
+		let UB_SR := min(UB_SR, sum{j in J} y[j]);
+		printf"\n Feasible solution found - value: %g \n", UB_SR > results.txt;
+		display y > results.txt;
+		display x > results.txt;	
+	}
+		 
+	# Update step size
+	let t := t+1;
+		 
+	# Update lower bound
+  	let LB_SR := max(LB_SR, VMs);  
+  	printf"\n Current best lower bound %g",LB_SR > results.txt;
+		
+	for {j in 1..M}
+	{
+		# Update multipliers
+		let m1_old[j] := m1[j];
+		#let m2_old[j] := m2[j];
+		#let m3_old[j] := m3[j];
+		
+		let norma := sqrt((sum{i in I} w[i]*x[i,j] - B_c*y[j])^2);# + (sum{i in I} cpu[i]*x[i,j] - B_CPU*y[j])^2 + (sum{i in I} m[i]*x[i,j] - B_m*y[j])^2);
+		if norma == 0 then let norma := 1;
+		
+		let m1[j] := max(0, m1_old[j] + 1/t * (sum{i in I} w[i]*x[i,j] - B_c*y[j])/norma);
+		#let m2[j] := max(0, m2_old[j] + 1/t * (sum{i in I} cpu[i]*x[i,j] - B_CPU*y[j])/norma);
+		#let m3[j] := max(0, m3_old[j] + 1/t * (sum{i in I} m[i]*x[i,j] - B_m*y[j])/norma);
+		printf"\n Updated multipliers %g,%g,%g and step %g \n", m1[j], m2[j], m3[j],t> results.txt;
+	}
+	  		  	  
+	if(LB_SR == UB_SR) then break;
+
+}
+let toc := _ampl_user_time + _total_solve_user_time;
+
+let SR_time := toc - tic;
+let tic := toc;
+quit;

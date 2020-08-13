@@ -1,0 +1,154 @@
+reset;
+
+reset options;
+
+model problem4.mod;
+
+data i_20_1.dat;
+
+option solver 'cplex';
+
+
+problem PackingRelax: y, x, VMs, Assignment, Consistency, VM_max_traffic, VM_max_CPU, VM_max_memory, Cover;
+
+problem Separation_c: u, Violation, CoverCondition_c;
+problem Separation_cpu: u, Violation, CoverCondition_cpu;
+problem Separation_m: u, Violation, CoverCondition_m;
+
+
+
+
+printf"-----------------------------------------------------------------------------\n" > results4.txt;
+printf"  			 			    LP relaxation	                                \n" > results4.txt;
+printf"-----------------------------------------------------------------------------\n" > results4.txt;
+
+param initialSol default 0;
+param finalSol default 0;
+
+param sep_c default 1000;
+param sep_cpu default 1000;
+param sep_m default 1000;
+param bestSEP default 1000;
+
+solve PackingRelax;
+display x > results4.txt;
+let initialSol := VMs;
+display VMs > results4.txt;
+
+
+
+printf"\n" > results4.txt;
+printf"-----------------------------------------------------------------------------\n" > results4.txt;
+printf"  			 			Violated cover inequalities	        		        \n" > results4.txt;
+printf"-----------------------------------------------------------------------------\n" > results4.txt;
+printf"\n" > results4.txt;
+
+param iter default 0;
+
+# Repeat until there are no violated cover inequalities
+repeat{
+ printf "----------------------------------- Iter: %d ---------------------------------\n", iter > results.txt;
+
+   # Update iterator 	
+   let iter := iter + 1;
+   
+   # Solve the LP relaxation with current set of cover inequalities 
+   solve PackingRelax;
+
+   printf "Instantiated VMs=%d \n", VMs > results4.txt;
+
+   # Prepare the objective function of the separation problem
+   let {i in I, j in J} x_star[i,j] := x[i,j];
+   let {j in J} y_star[j] := y[j];
+   
+   # Solve the separation problem
+   solve Separation_c;   #0,7
+   printf "SEP_c=%d \n", Violation > results4.txt;
+   display u > results4.txt;
+   let sep_c := Violation;
+ #   let bestSEP := sep_c;
+   
+   if (sep_c < 1) then 
+   {
+
+	  # Update the number of cover inequalities
+      let nc := nc + 1;
+
+      # Create new cover 
+      let CI[nc] := setof {i in I, j in J: u[i,j] == 1} (i,j); # si scrive così???
+
+      printf"CI[%d] := ", nc > results4.txt;
+      for{(i,j) in CI[nc]}
+      {
+      	printf"%d %d \n", i,j > results4.txt;
+      }
+      printf"\n\n" > results4.txt;
+
+   }
+   
+   solve Separation_cpu;  #0,5
+   printf "SEP_cpu=%d \n", Violation > results4.txt;
+   display u > results4.txt;
+   let sep_cpu := Violation;  
+   
+#   if (sep_cpu < bestSEP) then
+#     	{bestSEP := sep_cpu;}
+     	
+   if (sep_cpu < 1) then 
+   {
+
+	  # Update the number of cover inequalities
+      let nc := nc + 1;
+
+      # Create new cover 
+      let CI[nc] := setof {i in I, j in J: u[i,j] == 1} (i,j); # si scrive così???
+
+      printf"CI[%d] := ", nc > results4.txt;
+      for{(i,j) in CI[nc]}
+      {
+      	printf"%d %d \n", i,j > results4.txt;
+      }
+      printf"\n\n" > results4.txt;
+
+   }
+   
+   solve Separation_m;  #2
+   printf "SEP_m=%d \n", Violation > results4.txt;
+   display u > results4.txt;
+   let sep_m := Violation;
+#   if (sep_m < bestSEP) then
+#    {bestSEP := sep_m;}
+  
+   # Check if a violated cover exists
+
+   if (sep_m < 1) then 
+   {
+
+	  # Update the number of cover inequalities
+      let nc := nc + 1;
+
+      # Create new cover 
+      let CI[nc] := setof {i in I, j in J: u[i,j] == 1} (i,j);
+      printf"CI[%d] := ", nc > results4.txt;
+      for{(i,j) in CI[nc]}
+      {
+      	printf"%d %d \n", i,j > results4.txt;
+      }
+      printf"\n\n" > results4.txt;
+
+   }
+   
+   
+
+} until ( sep_c >= 1 and sep_cpu >= 1 and sep_m >= 1);
+
+
+solve PackingRelax;
+let finalSol := VMs;
+
+printf "Optimal values of VMs for LP with all violated cover inequalities:\n" > results4.txt;
+
+display VMs > results4.txt; 
+
+printf "Total number of cover inequalities considered: %d\n", nc > results4.txt;
+quit;

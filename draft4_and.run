@@ -1,0 +1,92 @@
+reset;
+
+reset options;
+
+model problem4.mod;
+
+data i_10_1.dat;
+
+option solver 'cplex';
+
+
+problem PackingRelax: y, x, VMs, Assignment, VM_max_traffic, VM_max_CPU, VM_max_memory, Cover;
+
+problem Separation: u, Violation, CoverCondition;
+
+
+printf"-----------------------------------------------------------------------------\n" > results4.txt;
+printf"  			 			    LP relaxation	                                \n" > results4.txt;
+printf"-----------------------------------------------------------------------------\n" > results4.txt;
+
+param initialSol default 0;
+param finalSol default 0;
+
+solve PackingRelax;
+let initialSol := VMs;
+display VMs > results4.txt;
+
+
+printf"\n" > results4.txt;
+printf"-----------------------------------------------------------------------------\n" > results4.txt;
+printf"  			 			Violated cover inequalities	        		        \n" > results4.txt;
+printf"-----------------------------------------------------------------------------\n" > results4.txt;
+printf"\n" > results4.txt;
+
+param iter default 0;
+
+# Repeat until there are no violated cover inequalities
+repeat{
+ printf "----------------------------------- Iter: %d ---------------------------------\n", iter > results4.txt;
+
+   # Update iterator 	
+   let iter := iter + 1;
+   
+   # Solve the LP relaxation with current set of cover inequalities 
+   solve PackingRelax;
+
+   printf "Instantiated VMs=%.3f\n", VMs > results4.txt;
+
+   # Prepare the objective function of the separation problem
+   let {i in I, j in J} x_star[i,j] := x[i,j];
+   let {j in J} y_star[j] := y[j];
+   
+   # Solve the separation problem
+   solve Separation;
+
+   printf "SEP=%.3f\n", Violation > results4.txt;
+   #display u > results4.txt;
+   #display x_star > results4.txt;
+
+   # Check if a violated cover exists
+
+   if (Violation < 1) then 
+   {
+
+	  # Update the number of cover inequalities
+      let nc := nc + 1;
+
+      # Create new cover     
+      let CI[nc] := setof {i in I, j in J: u[i,j] == 1} i;
+
+      printf"CI[%d] := ", nc > results4.txt;
+      for{j in CI[nc]}
+      {
+      	printf"%d ",j > results4.txt;
+      }
+      printf"\n\n" > results4.txt;
+
+   }
+
+} until ( Violation >= 1 );
+
+printf"----------------------------------- END Cycle ---------------------------------\n"> results4.txt;
+
+solve PackingRelax;
+let finalSol := VMs;
+
+printf "Optimal values of VMs for LP with all violated cover inequalities:\n" > results4.txt;
+
+display VMs > results4.txt; 
+
+printf "Total number of cover inequalities considered: %d\n", nc > results4.txt;
+quit;

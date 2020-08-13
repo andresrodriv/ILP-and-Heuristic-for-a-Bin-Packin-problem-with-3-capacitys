@@ -1,0 +1,13 @@
+#Bin packing problem [point 1]
+reset;
+model problem1.mod;
+data i_10_2.dat;
+
+option solver 'cplex';
+
+solve;
+
+display VMs; 
+display y;
+display x; 
+quit;

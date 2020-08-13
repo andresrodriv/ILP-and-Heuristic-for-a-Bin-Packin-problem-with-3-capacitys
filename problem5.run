@@ -1,0 +1,103 @@
+reset;
+
+reset options;
+
+
+model problem1.mod;
+
+model problem5.mod;
+
+data i_10_1.dat;
+
+param iter default 0;
+
+param greedySol default 0;
+
+param time default 0;
+
+set maxRequest;
+
+set bestVM_c default 1;
+set bestVM_CPU default 1;
+set bestVM_m default 1;
+
+
+#current partial solution
+let C := {};
+
+display AI;
+display AJ;
+display UI;
+
+printf"-----------------------------------------------------------------------------\n" > results5.txt;
+printf"                		   Greedy  \n" > results5.txt;
+printf"-----------------------------------------------------------------------------\n\n" > results5.txt;
+
+
+
+repeat{
+
+   let iter := iter + 1;
+   
+   printf"  					        Iteration %d \n",iter > results5.txt;
+   printf"     ------------------------------------------------------------------- \n\n" > results5.txt;
+      
+   printf"\n" > results5.txt;
+   
+   printf"Updated AI:\n\n" > results5.txt;
+   
+   for{i in AI} printf"%d   ", i > results5.txt; 
+   
+    printf"\n\nUpdated UI:\n\n" > results5.txt;
+   
+    for{i in UI} printf"(%d)   ", i > results5.txt; 
+   
+   
+   let maxRequest:= {i in UI: O_1[i] == max{j in UI} O_1[j]};
+   
+   printf"\n\n Subset of best requests:\n" > results5.txt;  
+   
+   for{i in maxRequest} printf"%d (%.3f)  ", i, O_1[i] > results5.txt;  
+   
+   printf"\n\n">results5.txt;
+   
+   # Resitual capacity computations to obtatin res_B;
+   # VM with lowest res_B is flagged as BEST;
+   let bestVM_c := {j in J: res_B_c[j] == min{k in J} res_B_c[k]};
+   let bestVM_CPU := {j in J: res_B_CPU[j] == min{k in J} res_B_CPU[k]};
+   let bestVM_m := {j in J: res_B_m[j] == min{k in J} res_B_m[k]};
+   
+   let bestVM := {j in J: res_B[j] == min{k in J} res_B[k]};
+   
+   printf"\n\n Best VM: %d\n", bestVM > results5.txt;
+   
+   for{i in maxRequest}{
+   	let counter := 0
+	repeat
+	{
+		if (w[i] <= res_B_c[bestVM] and cpu[i] <= res_B_CPU[bestVM + counter] and res_B_m <= res_B_m[bestVM + counter]) then {
+			AI := AI union {i};
+			UI := UI diff {i};
+			if not (j in AJ) then ---------
+				{
+				AJ := AJ union {j};
+				};
+			break;
+		}
+		else { # update the VM index (try the assignment in the next VM index)
+			let counter := counter + 1;
+			if (bestVM + 1 <= card[J]){
+			   let bestVM := bestVM + 1;}
+			else {
+			   let bestVM := bestVM + 1 - card[J];
+		}
+	} while counter <= card(J) - 1
+   }
+
+  
+} while (card(UI) >= 1);
+
+let time := _ampl_user_time;
+
+printf"\n" > results5.txt;
+quit;
